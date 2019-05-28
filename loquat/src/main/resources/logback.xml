@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+	<property name="LOG_HOME" value="${app.log.dir:-logs}"/>
+	<timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+	<contextName>common</contextName>
+
+	<include resource="logback-include.xml"/>
+
+	<logger name="com.javaoom" level="INFO" addtivity="false"/>
+
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="INFO-FILE"/>
+	</root>
+</configuration>

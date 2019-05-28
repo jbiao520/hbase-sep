@@ -27,6 +27,7 @@
     <module>hbase-sep-impl</module>
     <module>hbase-sep-demo</module>
     <module>hbase-sep-tools</module>
+      <module>loquat</module>
   </modules>
 
   <build>

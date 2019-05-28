@@ -58,7 +58,7 @@ public class DemoIngester {
 
         Table htable = ConnectionFactory.createConnection(conf).getTable(TableName.valueOf("sep-user-demo"));
 
-//        while (true) {
+        while (true) {
 //            byte[] rowkey = Bytes.toBytes(UUID.randomUUID().toString());
             byte[] rowkey = Bytes.toBytes("d5fcba24-168d-487e-95c2-08cd855ab62f");
             Put put = new Put(rowkey);
@@ -78,7 +78,7 @@ public class DemoIngester {
             htable.put(put);
             System.out.println("Added row " + Bytes.toString(rowkey));
             Thread.sleep(1500l);
-//        }
+        }
 //            byte[] rowkey = Bytes.toBytes("78150877-3d9f-4365-a25d-bc698851eca2");
 //            Delete delete = new Delete(rowkey);
 //            htable.delete(delete);
