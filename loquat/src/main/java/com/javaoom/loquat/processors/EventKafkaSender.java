@@ -19,6 +19,9 @@ public class EventKafkaSender implements EventListener {
 
     private String topic;
 
+    public EventKafkaSender(String topic) {
+        this.topic = topic;
+    }
 
     @Override
     public void processEvents(List<SepEvent> sepEvents) {

@@ -15,12 +15,13 @@
  */
 package com.javaoom.loquat.consumers;
 
+import com.google.common.base.Preconditions;
 import com.javaoom.loquat.processors.EventConsoleLogger;
+import com.javaoom.loquat.processors.EventKafkaSender;
+import com.ngdata.sep.EventListener;
 import com.ngdata.sep.PayloadExtractor;
 import com.ngdata.sep.SepModel;
-import com.ngdata.sep.impl.BasePayloadExtractor;
-import com.ngdata.sep.impl.SepConsumer;
-import com.ngdata.sep.impl.SepModelImpl;
+import com.ngdata.sep.impl.*;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.hadoop.conf.Configuration;
@@ -34,31 +35,50 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 
 /**
- * A simple consumer that just logs the events.
+ * A DeltaConsumer  that just distribute log event to kafka.
  */
-@Service
-public class LoggingConsumer {
-    private  Logger logger = LoggerFactory.getLogger(this.getClass());
-    @Value("${zk.hostname}")
+public class DeltaConsumer {
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     private String zkHost;
+    private String tableName;
+    private String cfName;
+    private PayloadExtractor payloadExtractor;
+    private SepConsumer sepConsumer;
+    private EventListener eventListener;
+    private String subscriptionName;
 
-    @PostConstruct
-    public void init() throws Exception {
-        logger.info("Start LoggingConsumer...");
+    public DeltaConsumer(String tableName, String cfName, String zkHost) {
+        Preconditions.checkNotNull(tableName, "tableName cannot be null");
+        this.tableName = tableName;
+        this.cfName = cfName;
+        this.zkHost = zkHost;
+
+        if (cfName == null) {
+            this.payloadExtractor = new TablePayloadExtractor(Bytes.toBytes(tableName));
+            this.eventListener = new EventKafkaSender(tableName);
+            this.subscriptionName = tableName;
+        }
+        else {
+            this.payloadExtractor = new ColumnFamilyPayloadExtractor(Bytes.toBytes(tableName), Bytes.toBytes(cfName));
+            this.eventListener = new EventKafkaSender(tableName + "-" + cfName);
+            this.subscriptionName = tableName + "-" + cfName;
+        }
+
+    }
+
+    public void start() throws Exception {
+        logger.info("Start DeltaConsumer...");
         Configuration conf = HBaseConfiguration.create();
         conf.setBoolean("hbase.replication", true);
         ZooKeeperItf zk = ZkUtil.connect(zkHost, 20000);
         SepModel sepModel = new SepModelImpl(zk, conf);
-        final String subscriptionName = "logger";
         if (!sepModel.hasSubscription(subscriptionName)) {
             sepModel.addSubscriptionSilent(subscriptionName);
         }
-        PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes("crawler_post"), Bytes.toBytes("info"),
-                Bytes.toBytes("content"));
-        SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, new EventConsoleLogger(), 1, zkHost, zk, conf,
+        sepConsumer = new SepConsumer(subscriptionName, 0, eventListener, 1, zkHost, zk, conf,
                 payloadExtractor);
         sepConsumer.start();
-        logger.info("Started...");
+        logger.info("DeltaConsumer : {}-{} Started...", tableName, cfName);
         while (true) {
             Thread.sleep(Long.MAX_VALUE);
         }
